@@ -1,0 +1,54 @@
+Revision history for the maildirsync utility:
+
+1.2	Mon Nov  1 19:22:19 CET 2010
+        - New option: --backup-tree. (gpiero)
+	- Allow spaces in the homedir path in the provided sample script.
+	  (gpiero)
+	- Added mac and macports compatibility. (dlux)
+	- New option: --destination to support maildirs on windows as well.
+	  (mmarini & fabrizio.sotgiu)
+	- Create directory path for state file if needed. (gpiero)
+	  http://bugs.debian.org/379091
+	- Exit if cannot read command from pipe. (gpiero)
+	  http://bugs.debian.org/440364
+	- Support more wide range of filenames in maildir. (gpiero)
+	  http://bugs.debian.org/356207
+	- Typo fixes. (gpiero)
+	- Do not use a world writable dir for logging from the provided
+	  sample script. Closes: CVE-2008-5150. (gpiero)
+	- Use perl warnings pragma instead of -w option. (gpiero)
+
+1.1	Wed Dec 22 22:08:20 CET 2004
+	- Added --exclude-source and --exclude-target and rename option
+
+1.0	Sun Jul 11 21:23:03 CEST 2004
+	- Added --exclude option
+
+0.6	Sat Dec  6 11:47:18 CET 2003
+	- Added a contributed software, which demonstrates the usage of
+	  maildirsync: mailbalance, a collection of scripts, which
+	  synchronizes several mailboxes between two hosts.
+
+0.5	Mon Sep 22 08:50:02 CEST 2003
+	- Bug fix for initial synchronization (Can't use an undefined value
+	  as a HASH reference at ./maildirsync.pl line 115)
+	- Better error handling on temporary file open
+	- A sample wrapper script added to the archive
+	- Source control moved to subversion
+	
+0.4	Fri May  9 22:35:50 CEST 2003
+	- File name default changed from maildirsync to maildirsync.pl to
+	  match the filename in the distribution
+	- It now runs on perl 5.6 also
+	- Added the possibility to parameterize the "rsh" command
+	  (--rsh-sep parameter)
+0.3	Sun Mar 16 17:23:47 CET 2003
+	- Fix the regex, which allows full hostname in the mail-filenames.
+
+0.2	Tue Oct  8 22:10:31 CEST 2002
+	- Verbosity levels are defined.
+	- Several bugs are fixed.
+	- Documentation updates
+
+0.1	Mon Oct  7 00:49:40 CEST 2002
+	- Initial release

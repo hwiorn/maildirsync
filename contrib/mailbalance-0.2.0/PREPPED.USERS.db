@@ -1,0 +1,5 @@
+#this file holds username:disposition pair 
+#it is written to and used for lookup by mailbalance
+#Do not modify this unless you know what you are doing
+
+test:OK

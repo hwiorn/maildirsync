@@ -1,0 +1,74 @@
+###############################################################
+#                  mailbalance-0.2.0                          #
+###############################################################
+#     Contributed to the maildirsync project by:              #
+#        Joel Holder <webmaster@pragnanz.com>                 #
+###############################################################
+
+
+Platform:
+FreeBSD 4.8 
+
+Requirments:
+bash-2.05b
+perl-5.8.0_7
+drsync-0.4.2 (In run path)
+maildirsync-0.5 (In run path)
+courier-imap-2.1.1 (Or just the maildirmake binary from this package in your run path)
+A Maildirs MTA, i.e. Postfix-2.2 or Maybe Qmail-x?
+
+Note: You may be able to use earlier version of these packages.  I can only attest that these scripts work 
+      with these.  Incidentally, these scripts come with absolutely no warranty, implicit or otherwise.  Should
+      you chose to try these in a production environment or with data that you care about, I suggest that you
+      test every function of this software thoroughly in your environment before fully deploying it.  Also, just 
+      so there no question about liability regarding problems that may occur as a result of your using  this software, 
+      that is on you too.  Finally, your usage of this software is an implicit agreement with all requirments in 
+      this document heretofore.  
+      
+      That being said, this software will probably work on other Unix/Linux platforms, but may require some minor tweaking.
+
+
+Summary:
+This set of scripts is designed to keep system-wide Maildir mail stores in sync between servers.  
+
+Logging: log directory
+Verbosity level has been turned up for both drsync and maildirsync, so the logs contain lots of info by 
+default.  You may want to reduce this if disk space is a concern or you do not need this level info.  One month worth 
+logs are all that are saved by default.  You can modify this length by hacking the rolllog function.
+
+Transfer Digests: lib directory
+These are records of what has been transfered.  There will be a lib directory on both sides (slave <---> master).  However, 
+only the digests where the master is the recipient are stored on the master. ALL others are in the slave host's lib.
+
+Deleted Mail: trashbags directory
+Every user with deleted mail on the slave will have one of these.  Future revs will pull it down from the master as well. 
+
+Configuration: mailbalance.conf
+There are only a few things to configure when setting this up.  I advise checking very carefully that each
+requirment has been met before attempting to run mailbalance, otherwise you may cause unanticipated consequences.
+
+variable defs:
+$MASTER = the host running the primary maildirs mta.
+$PROGDIR = this directory (you may place it anywhere on the system)
+$ADMIN	= who should get alerts from the system
+$FILE = the is the prepped users database file
+
+Note: Dont forget to adjust the paths to bash or perl in the following scripts:
+install.sh
+do_ms.sh
+mailbalance
+scoop_users.pl
+
+Usage: 
+Mailbalance can be run for a single user or multiple.  By default it runs in verbose/debugging mode, however if run with the -d switch,
+it will run in daemon mode suppressing output and forking into the background.  Below are some examples:
+
+#Run for single user..
+./mailbalance blah
+#Run for multiple users..
+./mailbalance blah bleh bluh
+#Run for all users (not root)..
+./mailbalance `./scoop_users.pl`
+#Or try:
+./mailbalance < `cat userlist.txt`
+

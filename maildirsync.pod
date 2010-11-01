@@ -1,0 +1,415 @@
+=head1 NAME
+
+maildirsync - Online synchronizer for Maildir-format mailboxes
+
+=head1 SYNOPSIS
+
+    maildirsync.pl [ --recursive ] [ --backup path ] [ --backup-tree ]     \
+        [ --bzip2=bzip2 ] [ --gzip=gzip ] [ --maildirsync=maildirsync.pl ] \
+        [ --rsh=ssh ] [ --verbose ] [ --alg=md5 ] [ --delete-before ]      \
+        [ --exclude=^/Folder1 ] [ --exclude=^/Fold.*er2 ]                  \
+        [ --exclude-source=^/Folder3 ] [ --exclude-target=^/Folder4 ]      \
+        [ --rename="s/SourceFolder/TargetFolder/" ]                        \
+        [ --destination=win|lin ]                                          \
+        [ -r ] [ -b path ] [ -B ] [ -R ssh ] [ -v ] [ -a ] [ -d ]          \
+        source dest state_file.bz2
+
+A simple two-way synchronization:
+
+    maildirsync.pl -rvv -a md5 desktop:Maildir Maildir lib/sync_desk_note.bz2
+    maildirsync.pl -rvv -a md5 Maildir desktop:Maildir lib/sync_note_desk.bz2
+
+=head1 DESCRIPTION
+
+maildirsync is a utility for online Maildir-synchronization. It is designed
+to be used on live maildir folders, be fail-safe and optimized for minimal
+bandwidth.
+
+=head1 HOW IT WORKS
+
+If you call the program once, it will propagate the changes from the source
+side to the target side. Two-way synchronization requires two state-file
+and two call for the program.
+
+This propagation is basically two different operations from the source side:
+
+=over 4
+
+=item *
+
+New file is created or an existing file is moved to a new location (e.g flags
+are changed).
+
+=item *
+
+A file is deleted in the source side. (Will be deleted in the target side
+also).
+
+=back
+
+At the first phase, the source side reads the state file (which stores the
+state of the last synchronization) and compares it to the current state.
+It collects the changes and sends them the target side.
+
+The target side checks every file, which is marked new in the source file,
+and decides if:
+
+=over 4
+
+=item *
+
+The file needs to be downloaded fully
+
+=item *
+
+Its header needs to be downloaded
+
+=item *
+
+We have this file already, so we need no data.
+
+=back
+
+After it decides, it sends back the requests for new files. 
+
+Then the source side will send the files to the target side, which stores
+them into the Maildir structure.
+
+After the send operation is completed, both operation agrees upon the
+commit operation. Then the source side saves the new state into the state
+file.
+
+Note if we forget saving the state, or the program exits before it, the
+operation can be restarted without data loss and inconsistency, because all
+operations can be redone without errors.
+
+=head1 REMOTE OPERATION
+
+Maildir can be used in remote mode, so it can synchronize Maildir folders
+between computers. If you want to use it this way, you have to provide the
+host name before either the source or the target, like:
+
+    maildirsync.pl ... desktop:Maildir Maildir lib/maildirsync.bz2
+
+or
+
+    maildirsync.pl ... Maildir desktop:Maildir lib/maildirsync.bz2
+
+In remote mode, the target side must have maildirsync installed also. (See
+the --maildirsync command-line argument).
+
+The state-file must be in the same system as the source, so the source file
+in the first example is searched in the "desktop" computer, and in the
+local computer in the second example.
+
+At least source or the destination must be local, so you cannot sync
+maildirs on two different remote hosts.
+
+=head1 COMMAND-LINE SWITCHES
+
+Some command line switches has two form: a short form and a longer form. In
+the short form, the switches can be grouped, like: -vvvr. Short options
+with parameters also can be grouped, but the parameter must be the
+following command-line argument, like:
+
+    maildirsync.pl -rvvvbR Maildir/Trash/cur ssh ...
+
+It is the same as:
+
+    maildirsync.pl --recursive --verbose --verbose --verbose --backup \
+        Maildir/Trash/cur --rsh ssh ...
+
+Long options can use '=' for assigning the parameter, or they can use the
+syntax above.
+
+Let's see what switches we have:
+
+=over 4
+
+=item --recursive, -r
+
+Process the base folder as the recursive collection of Maildir folders.
+
+=item --backup dir, -b dir
+
+The deleted files are backed up to the specified directory (this directory
+does not needs to be a maildir folder). The directory is relative to the
+start-up directory, not the target base folder! The directory is created if
+it does not exists.
+  
+=item --backup-tree, -B
+
+This option is only useful when used in conjunction with the --backup option.
+If set, deleted messages are moved to a Maildir folders tree inside the backup
+directory with the same relative path. The resulting backup directory can be
+used with any Maildir-capable application (MUAs, MTAs, etc.).
+
+=item --bzip2 bzip2
+
+Path to the bzip2 utility (used only when the state file has .bz2
+extension). Note that using bzip2 is turned out to be quite unstable, it
+sometimes leave the state file empty or corrupted.
+
+=item --gzip gzip
+
+Path to the gzip utility (used only when the state file has .gz extension).
+
+=item --maildirsync maildirsync.pl
+
+Path to the maildirsync utility on the remote machine (if we use maildirsync
+in remote mode).
+
+=item --rsh ssh
+
+Path to the utility, which can be used to connect to the remote side. It
+defaults to "ssh". Note that the protocol, which is used in remote mode,
+does not contain compression, but the data can be compressed well, so I
+suggest using the ssh compression for this purpose.
+
+=item --destination
+
+If it is provided, then it does transformation in the file names. The
+transformations are the following:
+
+=over 4
+
+=item *
+
+win: Converts ":" to "&#58;" (since windows don't allow colon in the filename).
+
+=item *
+
+lin: Converts "&#58;" to ":".
+
+=back
+
+=item --verbose, -v
+
+Adds more verbosity to the operation. There are currently 6 different
+verbosity level:
+
+=over 4
+
+=item 0
+
+No information at all.
+
+=item 1
+
+Main operations.
+
+=item 2
+
+Files sent, received, deleted, moved, md5 calculations.
+
+=item 3
+
+Directories read and created.
+
+=item 4
+
+Options + command echo.
+
+=item 5
+
+Misc info about file transfer.
+
+=back
+
+=item --alg md5, -a md5
+
+Selects the synchronization algorithm. Currently two algorithms are provided:
+
+=over 4
+
+=item id (default)
+
+The messages are synchronized only by the ID of a message (the ID can be
+determined by the message filename).
+
+=item md5
+
+This method is recommended for low bandwidth operations. This mode can
+reduce the file transfers by checking the message moves on the target
+side. This mode requires an MD5 sum on the body of the message, so the
+first use of this mode can be quite time-consuming on both sides. 
+
+=back
+
+For more information about the algorithms, read the chapter about that.
+
+=item --delete-before, -d
+
+Normally the delete operations on the target side is done after the
+transfers. Use this switch if you don't have too much space on your hard
+disk. Note that using this switch can reduce the chance of detecting the
+message moves.
+
+=item --exclude, -x
+
+Excludes a directory regexp from the transfer and removes it from the
+state file. This option can be used more than once to specify more than
+one directories. Note, that the directory, which is matched against these
+regexps are the relative path of the folders with a leading '/', so if you
+want to exclude your Trash folder in the root of your synchronization, then
+you have to use the following form:
+
+    --exclude=^/Trash
+
+The excluded paths are used in either source or the target side also. So if
+you exclude a very large directory, you will notice speedup in the source
+and target side also.
+
+Note that this regexp is matched for every directory that is read from the
+filesystem, and every directory what is found in the state file. So if you
+provide the exclude pattern as ^/Trash$, then it will skip the Trash
+directory when traversing the directory structure, but it WON'T skip files
+from the Trash/cur directory when reading from the state file! So be
+careful if you use the exclude pattern with existing state file!
+
+=item --exclude-source, --exclude-target
+
+These parameters can be used to exclude files only from one side of the
+synchronization. Can be useful with the rename options (below).
+
+=item --rename
+
+Can be used to rename files when transferred from one side to another. A
+perl expression is the parameter for this.
+
+If you use this option, use it with care, because you have to provide
+exactly the opposite of the name-transformation if you sync to the other
+side, for example:
+
+In one side, you can use (A to B):
+
+    --rename="s{^/Saved/}{/ToBeSaved/}" \
+    --exclude-target="^/Saved/" \
+
+In the other side, you can use (B to A):
+
+    --exclude-source="^/Saved/" \
+    --rename="s{^/ToBeSaved/}{/Saved/}" \
+
+In this case, the Saved folder in the A side will be synchronized with the
+ToBeSaved folder in the B side, and the Saved folder in the B side will be
+excluded from the synchronization. This scenario can be used when you don't
+want to store your emails in the server, but you want to use the "Saved"
+folder in the server too. In this case, the emails will be downloaded from
+the server (A side) to your laptop (B side), then you can move them to the
+Saved folder in B with a script. If this is done, then you can
+resynchronize, then the saved files will disappear from the server also.
+
+=back
+
+=head1 ALGORITHMS
+
+Currently the program has two algorithms, which can be used for
+synchronization.
+
+=over 4
+
+=item id (default)
+
+This algorithm is based on the message-id-s of the messages. It assumes
+that a message-id exists only once in both repositories with the same id.
+The id can be determined form the filename.
+
+With this algorithm, you can trace the flag changes or the deletion of a
+message and these changes can be propagated to the other side also. It also
+handles if a message is copied from the "new" directory to the "cur"
+directory without retransmit the files over the network.
+
+This algorithm is recommended if you want a simple and quite fast
+operation, and if you have a not-so-slow internet connection.
+
+=item md5
+
+This algorithm does further calculations. It stores the size of the header
+and the md5 sum of the message body for each message besides the data that
+the "id" algorithm stores.
+
+By using this algorithm, you can track the copies and moves of a message,
+so you don't need to retransmit large files if you move them to a new
+folder.
+
+If you copy or move a message from one folder to another, the header is
+sometimes changed by the mail-reader program. This is why we cannot simply
+calculate the MD5 sum of the whole message. A new message in a folder will
+have a new identifier also, so it doesn't violate the law that a message-id
+is unique. 
+
+When you copy or move a message from your INBOX to your "Save" folder (for
+example), the new message is analyzed in the source side, header-size and
+md5 sum is calculated on the new message, and from the md5-hash, the source
+side can tell the target side what messages has the same hash-value, so the
+target side can copy the body from the other message. If the target side has
+successfully copied the body from one of those provided messages, then only
+the header needs to be transmitted across the network. If the target-side
+did not find the messages, then it requests for the body also.
+
+=back
+
+=head1 ONLINE OPERATION
+
+Online operation means that the software can be used in an online mailbox
+also. It assumes that the Maildir folder can be changed when the program is
+working, so it tries to be as fail-safe as can be.
+
+Every new file is opened in the "tmp" directory, and moved to the
+target place only when the file is fully downloaded.
+
+This mode of operation was the first priority, because this feature is
+missing from most synchronizer software, including my "drsync" utility
+also.
+
+=head1 SPEED
+
+I am using this program to synchronize my Mailboxes. I have 9700 emails in
+my mailbox and the state file (bzipped) is 283K.
+
+The first time of a two-way synchronization between a P166 server and a
+PIII/1200 notebook over a Cable network, where the starting position is an
+already synchronized directory, tooks about 10 minutes. This time is used
+for md5-calculation and message-id propagation.
+
+The next two-way run tooks about 40 seconds.
+
+These things are measured in Debian GNU/Linux testing/unstable operating
+system (08 Oct 2002).
+
+These are only the overhead of the software, not the real transfer. If you
+got a very big email, it needs to be transferred at least one time on the
+network. But if you have it in both sides, then it does not require any
+more transfer if you save it to different folders.
+
+=head1 TODO
+
+I am currently happy with this feature set, but if I have time, I will
+implement these features into the software. Anyway if you have time and
+willingness, I accept patches also:
+
+=over 4
+
+=item *
+
+Message-size limit. By limiting the maximum transmitted message, you can
+effectively use this software if you have very low bandwidth.
+
+=item *
+
+Config-file and cron-safe operation.
+
+=back
+
+=head1 COPYRIGHT
+
+Copyright (c) 2000-2010 Szabó, Balázs (dLux)
+
+All rights reserved. This program is free software; you can redistribute it
+and/or modify it under the same terms as Perl itself.
+
+=head1 AUTHOR
+
+dLux (Szabó, Balázs) <dlux@dlux.hu>
+

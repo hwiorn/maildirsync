@@ -1,0 +1,9 @@
+1. digest sanity checking to reduce overhead - done.
+2. cause drsync to backup excluded-files in user trashbag dir before deleting them - ask dlux..
+3. use config file to set progdir and master, etc.. - done
+4. create installer
+5. break prep routines out into seperate function - done
+6. write "write routines" for prepped.users.db - done
+7. write function to test for exist logfile: if yes append, if no create, appends, and delete oldest (allow config var to control roll interval) 
+8. add verbosity levels
+5. add creation of a cron job to monitor run state of mailbalance to installer

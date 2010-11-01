@@ -1,0 +1,52 @@
+#!/usr/local/bin/bash
+
+
+ME=`whoami`
+if [ $ME != "root" ] ; then 
+	echo "You must be root to run this script" 
+	exit 
+fi 
+
+
+source ./mailbalance.conf
+source ./functions.inc
+
+if [ -z $1 ] ; then
+        echo 'Usage: '$0' [-d] < `cat userlist.txt`'
+        exit
+fi
+
+
+#Do not functionize this .. needs to be in global scope to shift off switches
+if [ "${1}"  = "-d" ] ; then
+	shift
+	MODE=daemon;
+else
+        MODE=verbose;
+fi
+echo "Starting $0 in ${MODE} mode..."
+
+
+
+
+
+while true ; do
+	for i in $@ ; do        	
+		DOSYNC=`checkuser $i`;
+		if [ "${DOSYNC}" = "OK" ] ; then
+			case $MODE in
+			daemon)
+				doit $i ${MODE} 2>&1 > /dev/null ;; 
+			*)
+				doit $i ${MODE} ;;					
+			esac				
+		else
+			writenok $i
+			luserprep $i			
+			ruserprep $i
+			#uncomment below for debugging, if you want to stop loop
+			#exit
+			writeok $i
+  		fi
+	done	
+done
