@@ -96,7 +96,7 @@ sub add_opt ($;$) { my ($optname, $value) = @_;
         exit_with_error("Invalid parameter value: $optname: $value") if $value !~ /^$regex$/;
     }
     verbose 4 => "add option $optname = ".($value || "");
-    if (reftype($OPT{$optname}) ne 'ARRAY') {
+    if ((reftype($OPT{$optname}) || "") ne 'ARRAY') {
         $OPT{$optname} = $value;
     } else {
         push @{$OPT{$optname}}, $value;
