@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 
 # #########################################################################
 # Imports
@@ -10,7 +10,7 @@ use File::Path qw(mkpath);
 use IO::Handle;
 use IPC::Open2;
 use Fcntl qw(SEEK_SET);
-use UNIVERSAL qw(isa);
+use Scalar::Util 'reftype';
 use strict;
 use warnings;
 require 5.006;
@@ -31,7 +31,7 @@ my @OPTSPEC = (qw(
     backup-tree     b:0                 B       0       1
     bzip2           s:bzip2             -       1       0
     gzip            s:gzip              -       1       0
-    maildirsync     s:maildirsync.pl    -       1       1
+    maildirsync     s:maildirsync       -       1       1
     mode            i:0                 -       0       0
     rsh             s:ssh               R       0       0
     verbose         I:0                 v       1       1
@@ -96,7 +96,7 @@ sub add_opt ($;$) { my ($optname, $value) = @_;
         exit_with_error("Invalid parameter value: $optname: $value") if $value !~ /^$regex$/;
     }
     verbose 4 => "add option $optname = ".($value || "");
-    if (!isa($OPT{$optname}, 'ARRAY')) {
+    if (reftype($OPT{$optname}) ne 'ARRAY') {
         $OPT{$optname} = $value;
     } else {
         push @{$OPT{$optname}}, $value;
@@ -404,7 +404,7 @@ sub save_state_file ($$) { my ($filename, $statedata) = @_;
     exit_with_error("Cannot open temporary state file for writing: $newfilename") if !$FH;
     print $FH $STATE_FILE_FIRST_LINE;
     print $FH join("\t",$_, $statedata->[ID]->{$_}, ($statedata->[IDSTORE]->{$_} || ""))."\n"
-        foreach keys %{$statedata->[ID]};
+        foreach sort keys %{$statedata->[ID]};
     close $FH;
     chmod $listfile_perms, $newfilename
         or exit_with_error("Cannot chmod temporary state file: $!");
