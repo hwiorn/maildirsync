@@ -31,6 +31,9 @@ my @OPTSPEC = (qw(
     backup-tree     b:0                 B       0       1
     bzip2           s:bzip2             -       1       0
     gzip            s:gzip              -       1       0
+    xz              s:xz                -       1       0
+    lz4             s:lz4               -       1       0
+    zstd            s:zstd              -       1       0
     maildirsync     s:maildirsync       -       1       1
     mode            i:0                 -       0       0
     rsh             s:ssh               R       0       0
@@ -264,6 +267,24 @@ sub read_state_file ($) { my ($filename) = @_;
             exec($OPT{gzip}, "-cd", $filename);
             exit(1);
         }
+    } elsif ($filename =~ /\.xz$/) {
+        my $pid = open $FH, "-|";
+        if (!$pid) { # child
+            exec($OPT{xz}, "-cd", $filename);
+            exit(1);
+        }
+    } elsif ($filename =~ /\.lz4$/) {
+        my $pid = open $FH, "-|";
+        if (!$pid) { # child
+            exec($OPT{lz4}, "-cd", $filename);
+            exit(1);
+        }
+    } elsif ($filename =~ /\.zstd$/) {
+        my $pid = open $FH, "-|";
+        if (!$pid) { # child
+            exec($OPT{zstd}, "-cd", $filename);
+            exit(1);
+        }
     } else { open $FH, $filename };
     return $state_data if !$FH; # no state-file
     $listfile_perms = (stat($filename))[2] & 07777;
@@ -398,6 +419,27 @@ sub save_state_file ($$) { my ($filename, $statedata) = @_;
         if (!$pid) { # child
             open STDOUT, ">", $newfilename or exit 1;
             exec($OPT{gzip});
+            exit(1);
+        }
+    } elsif ($filename =~ /\.xz$/) {
+        my $pid = open $FH, "|-";
+        if (!$pid) { # child
+            open STDOUT, ">", $newfilename or exit 1;
+            exec($OPT{xz});
+            exit(1);
+        }
+    } elsif ($filename =~ /\.lz4$/) {
+        my $pid = open $FH, "|-";
+        if (!$pid) { # child
+            open STDOUT, ">", $newfilename or exit 1;
+            exec($OPT{lz4});
+            exit(1);
+        }
+    } elsif ($filename =~ /\.zstd$/) {
+        my $pid = open $FH, "|-";
+        if (!$pid) { # child
+            open STDOUT, ">", $newfilename or exit 1;
+            exec($OPT{zstd});
             exit(1);
         }
     } else { open $FH, ">", $newfilename or $FH = undef };
